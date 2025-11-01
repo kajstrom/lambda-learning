@@ -98,14 +98,6 @@ export class InfrastructureStack extends cdk.Stack {
       },
     }));
 
-    // Frontend: Deploy build files to S3
-    new s3deploy.BucketDeployment(this, 'DeployWebsite', {
-      sources: [s3deploy.Source.asset(path.join(__dirname, '../../frontend/dist'))], // Adjust path as needed
-      destinationBucket: websiteBucket,
-      distribution,
-      distributionPaths: ['/*'], // Invalidate all paths after deployment
-    });
-
     // Outputs
     new cdk.CfnOutput(this, 'ApiUrl', {
       value: httpApi.url!,

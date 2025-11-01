@@ -1,0 +1,49 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'backend/**'
+      - 'infrastructure/**'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infrastructure
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22'
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.14'
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v5.1.0
+        with:
+          role-to-assume: arn:aws:iam::463438090254:role/GitHubAction-AssumeRoleWithAction-kajstrom-lambda-learning
+          aws-region: ${{ secrets.AWS_REGION }}
+      
+      - name: Install CDK dependencies
+        run: npm ci
+
+      - name: Synthesize CDK
+        run: npx cdk synth
+      
+      - name: CDK Deploy
+        run: npx cdk deploy --require-approval never
