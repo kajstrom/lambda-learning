@@ -1,12 +1,11 @@
-name: Deploy Backend
+name: Deploy Frontend
 
 on:
   push:
     branches: [master]
     paths:
-      - 'backend/**'
-      - 'infrastructure/**'
-      - '.github/workflows/deploy-backend.yml'
+      - 'frontend/**'
+      - '.github/workflows/deploy-frontend.yml'
   workflow_dispatch:
 
 permissions:
@@ -18,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: infrastructure
+        working-directory: frontend
     
     steps:
       - uses: actions/checkout@v3
@@ -28,10 +27,13 @@ jobs:
         with:
           node-version: '22'
       
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.14'
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build
+        run: npm run build
+        env:
+          VITE_API_URL: ${{ vars.API_URL }}
       
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v5.1.0
@@ -39,11 +41,11 @@ jobs:
           role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ vars.AWS_REGION }}
       
-      - name: Install CDK dependencies
-        run: npm ci
-
-      - name: Synthesize CDK
-        run: npx cdk synth
+      - name: Deploy to S3
+        run: aws s3 sync dist/ s3://${{ vars.S3_BUCKET_NAME }} --delete
       
-      - name: CDK Deploy
-        run: npx cdk deploy --require-approval never
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
