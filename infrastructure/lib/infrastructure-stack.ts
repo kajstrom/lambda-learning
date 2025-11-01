@@ -3,10 +3,11 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as apigatewayv2 from 'aws-cdk-lib/aws-apigatewayv2';
 import * as apigatewayv2_integrations from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import * as s3 from 'aws-cdk-lib/aws-s3';
-import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
-import * as path from 'path';
+import * as acm from 'aws-cdk-lib/aws-certificatemanager';
+import * as route53 from 'aws-cdk-lib/aws-route53';
+import * as route53targets from 'aws-cdk-lib/aws-route53-targets';
 import { Construct } from 'constructs';
 import { PythonFunction } from '@aws-cdk/aws-lambda-python-alpha';
 
@@ -63,12 +64,30 @@ export class InfrastructureStack extends cdk.Stack {
       },
     });
 
+    //Custom Domain Configuration
+    const domainName = 'lambda-learning.kstrm.com';
+    const hostedZoneId = 'Z0928598EYO9M4LDLVZL';
+    const zoneName = 'kstrm.com';
+
+    const hostedZone = route53.HostedZone.fromHostedZoneAttributes(this, 'HostedZone', {
+      hostedZoneId,
+      zoneName,
+    });
+
+    const certificate = acm.Certificate.fromCertificateArn(
+      this,
+      'Certificate',
+      'arn:aws:acm:us-east-1:463438090254:certificate/feec6310-4b3f-4515-ac9c-3e919f62cc56'
+    );
+
     // Frontend: CloudFront Distribution
     const distribution = new cloudfront.Distribution(this, 'Distribution', {
       defaultBehavior: {
         origin: new origins.S3Origin(websiteBucket),
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
       },
+      domainNames: [domainName],
+      certificate: certificate,
       defaultRootObject: 'index.html',
       errorResponses: [
         {
@@ -77,6 +96,15 @@ export class InfrastructureStack extends cdk.Stack {
           responsePagePath: '/index.html',
         },
       ],
+    });
+
+    // Route53 A Record
+    new route53.ARecord(this, 'AliasRecord', {
+      zone: hostedZone,
+      recordName: domainName,
+      target: route53.RecordTarget.fromAlias(
+        new route53targets.CloudFrontTarget(distribution)
+      ),
     });
 
     // Associate OAC with CloudFront distribution

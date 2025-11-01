@@ -7,7 +7,10 @@ app = FastAPI()
 # Configure CORS (update origins after deploying)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://dx0z6fxaxyua0.cloudfront.net"],  # Update with CloudFront URL later
+    allow_origins=[
+        "https://lambda-learning.kstrm.com",
+        "https://dx0z6fxaxyua0.cloudfront.net"
+    ], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
