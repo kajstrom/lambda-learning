@@ -23,6 +23,9 @@ export class InfrastructureStack extends cdk.Stack {
       handler: 'handler',
       timeout: cdk.Duration.seconds(30),
       memorySize: 512,
+      environment: {
+        GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
+      },
     });
 
     // Backend: HTTP API Gateway

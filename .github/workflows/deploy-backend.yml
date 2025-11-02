@@ -47,3 +47,5 @@ jobs:
       
       - name: CDK Deploy
         run: npx cdk deploy --require-approval never
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
